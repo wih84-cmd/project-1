@@ -75,9 +75,10 @@ elif search_option == "특정 동영상 URL/ID로 검색":
                 st.caption(f"채널명: {snippet['channelTitle']}")
                 st.video(f"https://www.youtube.com/watch?v={v_id}")
 
-                # 통계 데이터 출력 (문법 오류 수정 완료 구역)
+                # 통계 데이터 출력
                 col1, col2, col3 = st.columns(3)
                 col1.metric("조회수", f"{int(stats.get('viewCount', 0)):,} 회")
                 col2.metric("좋아요", f"{int(stats.get('likeCount', 0)):,} 개")
-                col3.metric("댓글 수", f"{int(stats.get('commentCount',
-                                                     
+                col3.metric("댓글 수", f"{int(stats.get('commentCount', 0)):,} 개")
+            else:
+                st.error("올바른 동영상 ID 또는 URL을 입력해 주세요.")    
