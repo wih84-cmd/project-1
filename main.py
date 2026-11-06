@@ -3,7 +3,9 @@ import streamlit as st
 import pandas as pd
 from googleapiclient.discovery import build
 
-# API 키 불러오기
+# ----------------------------------------------------
+# 1. API 키 로드 (Streamlit Secrets 우선 사용)
+# ----------------------------------------------------
 if "YOUTUBE_API_KEY" in st.secrets:
     API_KEY = st.secrets["YOUTUBE_API_KEY"]
 else:
@@ -11,19 +13,25 @@ else:
     load_dotenv()
     API_KEY = os.getenv("YOUTUBE_API_KEY")
 
+# YouTube API 클라이언트 생성
 youtube = build('youtube', 'v3', developerKey=API_KEY)
 
+# ----------------------------------------------------
+# 2. UI 레이아웃 구성
+# ----------------------------------------------------
 st.title("🎬 유튜브 전세계 동영상 검색 & 분석 시스템")
 
-# 1. 검색 옵션 선택
+# 검색 방식 선택
 search_option = st.radio("검색 방식을 선택하세요:", ["전체 유튜브 검색", "특정 동영상 URL/ID로 검색"])
 
+# ----------------------------------------------------
+# 3. 검색 로직 처리
+# ----------------------------------------------------
 if search_option == "전체 유튜브 검색":
     keyword = st.text_input("검색할 키워드나 질문을 입력하세요:", placeholder="예: 아이폰 16 리뷰, 우주 과학 등")
     
     if st.button("검색 실행"):
         if keyword.strip():
-            # channelId를 지정하지 않아 전체 유튜브에서 검색됩니다.
             res = youtube.search().list(
                 part="snippet",
                 q=keyword,
@@ -67,6 +75,9 @@ elif search_option == "특정 동영상 URL/ID로 검색":
                 st.caption(f"채널명: {snippet['channelTitle']}")
                 st.video(f"https://www.youtube.com/watch?v={v_id}")
 
+                # 통계 데이터 출력 (문법 오류 수정 완료 구역)
                 col1, col2, col3 = st.columns(3)
                 col1.metric("조회수", f"{int(stats.get('viewCount', 0)):,} 회")
-                col2.metric("좋아요", f"{
+                col2.metric("좋아요", f"{int(stats.get('likeCount', 0)):,} 개")
+                col3.metric("댓글 수", f"{int(stats.get('commentCount',
+                                                     
