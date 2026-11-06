@@ -1,5 +1,3 @@
-default-jre
-fonts-nanum
 
 import os
 import re
