@@ -1,4 +1,3 @@
-
 import os
 import re
 from collections import Counter
@@ -23,7 +22,15 @@ youtube = build('youtube', 'v3', developerKey=API_KEY)
 st.title("🎬 유튜브 동영상 분석 & 워드클라우드 시스템")
 
 # ----------------------------------------------------
-# 2. 헬퍼 함수 정의 (통계 가져오기 & 워드클라우드 생성)
+# 2. 세션 상태(Session State) 초기화
+# ----------------------------------------------------
+if "search_results" not in st.session_state:
+    st.session_state.search_results = []
+if "searched" not in st.session_state:
+    st.session_state.searched = False
+
+# ----------------------------------------------------
+# 3. 헬퍼 함수 정의
 # ----------------------------------------------------
 def get_video_stats(video_id):
     """동영상 조회수, 좋아요, 댓글 수 데이터 추출"""
@@ -34,7 +41,7 @@ def get_video_stats(video_id):
     return None, None
 
 def extract_words(text):
-    """댓글 텍스트에서 명사/단어 추출 (KoNLPy 예외 안전 처리)"""
+    """댓글 텍스트에서 단어 추출"""
     cleaned = re.sub(r'[^가-힣\s]', ' ', text)
     try:
         from konlpy.tag import Okt
@@ -42,10 +49,9 @@ def extract_words(text):
         nouns = okt.nouns(cleaned)
         words = [w for w in nouns if len(w) >= 2]
     except Exception:
-        # KoNLPy/자바 미설치 환경 대비 fallback
         words = [w for w in cleaned.split() if len(w) >= 2]
     
-    stopwords = {'진짜', '정말', '영상', '생각', '보고', '정도', '때문', '하나', '유튜브', '이거', '너무'}
+    stopwords = {'진짜', '정말', '영상', '생각', '보고', '정도', '때문', '하나', '유튜브', '이거', '너무', '구독'}
     return [w for w in words if w not in stopwords]
 
 def generate_wordcloud(video_id):
@@ -79,7 +85,7 @@ def generate_wordcloud(video_id):
 
     word_counts = Counter(words)
 
-    # 폰트 경로 확인
+    # 나눔 폰트 경로 확인
     font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
     if not os.path.exists(font_path):
         font_path = None
@@ -98,7 +104,7 @@ def generate_wordcloud(video_id):
     st.pyplot(fig)
 
 # ----------------------------------------------------
-# 3. 메인 UI 및 검색 실행
+# 4. 메인 UI 및 검색 로직
 # ----------------------------------------------------
 search_option = st.radio("검색 방식을 선택하세요:", ["전체 유튜브 검색", "특정 동영상 URL/ID로 검색"])
 
@@ -116,32 +122,35 @@ if search_option == "전체 유튜브 검색":
             ).execute()
             
             items = res.get('items', [])
-            if items:
-                for item in items:
-                    v_id = item['id']['videoId']
-                    snippet, stats = get_video_stats(v_id)
-                    
-                    if snippet and stats:
-                        st.markdown(f"### {snippet['title']}")
-                        st.caption(f"채널명: {snippet['channelTitle']}")
-                        st.video(f"https://www.youtube.com/watch?v={v_id}")
-
-                        # 통계 수치 출력
-                        c1, c2, c3 = st.columns(3)
-                        c1.metric("조회수", f"{int(stats.get('viewCount', 0)):,} 회")
-                        c2.metric("좋아요", f"{int(stats.get('likeCount', 0)):,} 개")
-                        c3.metric("댓글 수", f"{int(stats.get('commentCount', 0)):,} 개")
-
-                        # 워드클라우드 분석 버튼 (키 고유화 적용)
-                        if st.button(f"☁️ 댓글 워드클라우드 보기", key=f"btn_{v_id}"):
-                            with st.spinner("댓글 분석 중..."):
-                                generate_wordcloud(v_id)
-
-                        st.divider()
-            else:
-                st.error("검색 결과가 없습니다.")
+            # 검색 결과를 Session State에 저장
+            st.session_state.search_results = items
+            st.session_state.searched = True
         else:
             st.warning("검색어를 입력해 주세요.")
+
+    # 저장된 검색 결과 화면 출력
+    if st.session_state.searched and st.session_state.search_results:
+        st.subheader("🔍 검색 결과")
+        for item in st.session_state.search_results:
+            v_id = item['id']['videoId']
+            snippet, stats = get_video_stats(v_id)
+            
+            if snippet and stats:
+                st.markdown(f"### {snippet['title']}")
+                st.caption(f"채널명: {snippet['channelTitle']}")
+                st.video(f"https://www.youtube.com/watch?v={v_id}")
+
+                c1, c2, c3 = st.columns(3)
+                c1.metric("조회수", f"{int(stats.get('viewCount', 0)):,} 회")
+                c2.metric("좋아요", f"{int(stats.get('likeCount', 0)):,} 개")
+                c3.metric("댓글 수", f"{int(stats.get('commentCount', 0)):,} 개")
+
+                # 버튼 대신 expander 사용 (화면 리셋 방지)
+                with st.expander("☁️ 이 영상 댓글 워드클라우드 보기"):
+                    with st.spinner("댓글 수집 및 워드클라우드 분석 중..."):
+                        generate_wordcloud(v_id)
+
+                st.divider()
 
 elif search_option == "특정 동영상 URL/ID로 검색":
     video_input = st.text_input("유튜브 동영상 링크 또는 ID를 입력하세요:")
