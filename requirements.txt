@@ -2,3 +2,10 @@ google-api-python-client
 pandas
 python-dotenv
 streamlit
+google-api-python-client
+pandas
+python-dotenv
+streamlit
+konlpy
+wordcloud
+matplotlib
