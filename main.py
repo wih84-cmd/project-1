@@ -9,7 +9,7 @@ from konlpy.tag import Okt
 from wordcloud import WordCloud
 
 # ----------------------------------------------------
-# 1. API 키 로드
+# 1. API 키 로드 (Streamlit Secrets 우선 사용)
 # ----------------------------------------------------
 if "YOUTUBE_API_KEY" in st.secrets:
     API_KEY = st.secrets["YOUTUBE_API_KEY"]
@@ -36,17 +36,14 @@ def get_video_stats(video_id):
 def generate_wordcloud(video_id):
     """댓글 수집 후 워드클라우드 생성"""
     comments = []
-    next_page_token = None
     
-    # 댓글 100개 수집
     try:
         request = youtube.commentThreads().list(
             part="snippet",
             videoId=video_id,
             order="relevance",
             maxResults=100,
-            textFormat="plainText",
-            pageToken=next_page_token
+            textFormat="plainText"
         )
         response = request.execute()
         for item in response.get('items', []):
@@ -75,11 +72,10 @@ def generate_wordcloud(video_id):
 
     word_counts = Counter(words)
 
-    # 워드클라우드 그리기
-    # Streamlit Cloud 기본 나눔폰트 경로 지정 (로컬 실행 시 시스템 폰트 경로로 자동 대처)
+    # 워드클라우드 폰트 설정
     font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
     if not os.path.exists(font_path):
-        font_path = None  # 폰트 파일이 없으면 기본 폰트 사용
+        font_path = None
 
     wc = WordCloud(
         font_path=font_path,
@@ -113,5 +109,4 @@ if search_option == "전체 유튜브 검색":
             ).execute()
             
             items = res.get('items', [])
-            if items:
-                for item in
+            if
